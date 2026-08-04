@@ -26,8 +26,8 @@ COLLECTION_NAME = "etisalat_kb"
 TOP_K = 5
 
 client = OpenAI(
-    api_key=os.getenv("OPENAI_API_KEY"),
-    base_url=os.getenv("OPENAI_BASE_URL") or None,
+    api_key=os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY"),
+    base_url=os.getenv("OPENAI_BASE_URL", "https://api.groq.com/openai/v1"),
 )
 CHAT_MODEL = os.getenv("CHAT_MODEL", "gpt-4o-mini")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")
@@ -42,13 +42,19 @@ class AgentState(TypedDict):
     sources: List[str]
 
 
+_embed_fn = None
+
+def get_embed_fn():
+    global _embed_fn
+    if _embed_fn is None:
+        _embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+            model_name="paraphrase-multilingual-MiniLM-L12-v2"
+        )
+    return _embed_fn
+
 def get_collection():
-    embed_kwargs = {"api_key": os.getenv("OPENAI_API_KEY"), "model_name": EMBEDDING_MODEL}
-    if os.getenv("OPENAI_BASE_URL"):
-        embed_kwargs["api_base"] = os.getenv("OPENAI_BASE_URL")
-    openai_ef = embedding_functions.OpenAIEmbeddingFunction(**embed_kwargs)
     chroma_client = chromadb.PersistentClient(path=CHROMA_DIR)
-    return chroma_client.get_collection(name=COLLECTION_NAME, embedding_function=openai_ef)
+    return chroma_client.get_collection(name=COLLECTION_NAME, embedding_function=get_embed_fn())
 
 
 # ---------------------------------------------------------------------------

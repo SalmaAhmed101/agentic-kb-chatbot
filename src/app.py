@@ -15,8 +15,8 @@ sys.path.insert(0, os.path.dirname(__file__))
 import streamlit as st
 from graph import ask
 
-st.set_page_config(page_title="Etisalat Egypt KB Chatbot", page_icon="📶")
-st.title("📶 Etisalat Egypt Knowledge-Base Chatbot")
+st.set_page_config(page_title="Etisalat Egypt KB Chatbot", page_icon="e&")
+st.title("Etisalat Egypt Knowledge-Base Chatbot")
 st.caption("RAG chatbot over Etisalat Egypt mobile plans — built with LangGraph + ChromaDB")
 
 if "messages" not in st.session_state:

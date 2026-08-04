@@ -199,25 +199,18 @@ def main():
         json.dump(records, fh, ensure_ascii=False, indent=2)
     print(f"Extracted {len(records)} chunks -> {PROCESSED_DIR / 'chunks.json'}")
 
-    api_key = os.getenv("OPENAI_API_KEY")
-    base_url = os.getenv("OPENAI_BASE_URL")  # optional, for OpenAI-compatible providers
-    if not api_key:
-        print("WARNING: OPENAI_API_KEY not set. Skipping embedding step.")
-        print("Set it in a .env file, then re-run this script to populate ChromaDB.")
-        return
-
-    embed_kwargs = {"api_key": api_key, "model_name": os.getenv("EMBEDDING_MODEL", "text-embedding-3-small")}
-    if base_url:
-        embed_kwargs["api_base"] = base_url
-    openai_ef = embedding_functions.OpenAIEmbeddingFunction(**embed_kwargs)
+    print("Loading local embedding model (first run downloads it, then it's cached)...")
+    embed_fn = embedding_functions.SentenceTransformerEmbeddingFunction(
+        model_name="paraphrase-multilingual-MiniLM-L12-v2"
+    )
 
     client = chromadb.PersistentClient(path=str(CHROMA_DIR))
-    # Fresh collection each run so re-ingesting doesn't duplicate.
     try:
         client.delete_collection(COLLECTION_NAME)
-    except Exception:
-        pass
-    collection = client.create_collection(name=COLLECTION_NAME, embedding_function=openai_ef)
+    except chromadb.errors.NotFoundError:
+        pass  # nothing to delete yet, that's fine
+    
+    collection = client.create_collection(name=COLLECTION_NAME, embedding_function=embed_fn)
 
     ids = [r["id"] for r in records]
     docs = [r["text"] for r in records]
